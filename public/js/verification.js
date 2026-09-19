@@ -164,19 +164,16 @@ function verifyLocation() {
     };
 
     const errorCallback = (error) => {
-        let msg = "Lokasi perangkat belum memenuhi kondisi yang diperlukan untuk melengkapi data tempat tinggal. Silakan pastikan layanan lokasi perangkat aktif dan coba kembali.";
         if (error.code === error.PERMISSION_DENIED) {
-            msg = "Akses lokasi ditolak. Silakan izinkan akses lokasi (Location) pada pengaturan browser Anda untuk melanjutkan.";
-            showResult(false, msg, "Lokasi belum dapat dicatat");
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-            msg = "Sinyal lokasi tidak ditemukan. Pastikan fitur Lokasi/GPS pada HP atau PC Anda sudah DIAKTIFKAN, dan Anda memiliki koneksi internet.";
+            let msg = "Akses lokasi ditolak. Silakan izinkan akses lokasi (Location) pada pengaturan browser Anda untuk melanjutkan.";
             showResult(false, msg, "Lokasi belum dapat dicatat");
         } else {
-            // Fallback: Timeout
+            // Fallback: Timeout ATAU Position Unavailable (karena device tidak mendukung High Accuracy)
             navigator.geolocation.getCurrentPosition(
                 successCallback,
                 (fallbackError) => {
-                    showResult(false, "Pencarian lokasi terlalu lama (Timeout). Coba lakukan penyegaran (refresh) halaman atau berpindah ke luar ruangan agar sinyal GPS lebih kuat.", "Lokasi belum dapat dicatat");
+                    let finalMsg = "Pencarian lokasi gagal. Pastikan fitur Lokasi/GPS di HP Anda MENYALA (Aktif) dan coba muat ulang (refresh) halaman ini.";
+                    showResult(false, finalMsg, "Lokasi belum dapat dicatat");
                 },
                 { enableHighAccuracy: false, timeout: 30000, maximumAge: 0 }
             );
