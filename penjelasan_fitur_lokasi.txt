@@ -1,42 +1,48 @@
 PENJELASAN LENGKAP FITUR:
-VERIFIKASI TITIK LOKASI RUMAH RESPONDEN
+VERIFIKASI TITIK LOKASI RUMAH RESPONDEN (VERSI TERBARU)
 
 1. TUJUAN UTAMA
-Fitur ini dibangun untuk mendapatkan koordinat rumah responden (Latitude & Longitude) yang akurat dari GPS perangkat pengguna tanpa mengharuskan surveyor datang ke lokasi, tanpa memaksa pengguna menandai peta secara manual, dan tanpa melakukan pelacakan (tracking) secara terus-menerus. Sistem hanya akan memverifikasi dan menyimpan lokasi jika perangkat sedang berada dekat dengan alamat rumah yang diketikkan.
+Fitur ini dibangun untuk mendapatkan koordinat rumah responden (Latitude & Longitude) yang akurat dari GPS perangkat pengguna tanpa mengharuskan surveyor datang ke lokasi, tanpa memaksa pengguna menandai peta secara manual, dan tanpa melakukan pelacakan (tracking) secara terus-menerus. Pengalaman pengguna (UX) dibuat mengalir dan natural, tanpa membuat responden merasa sedang diawasi atau diinterogasi.
 
 2. TEKNOLOGI & KOMPONEN
-- Laravel (PHP): Mengelola logika backend, database, dan perhitungan jarak matematis.
+- Laravel (PHP): Mengelola logika backend, database, dan perhitungan jarak matematis (Haversine).
 - Nominatim (OpenStreetMap): Layanan "Geocoding", mengubah teks alamat yang diinput menjadi Titik Referensi koordinat.
-- Browser Geolocation API: Membaca koordinat aktual GPS perangkat pengguna dan tingkat akurasinya (memerlukan izin eksplisit pengguna).
+- Browser Geolocation API: Membaca koordinat aktual GPS perangkat pengguna dan tingkat akurasinya.
 
-3. ALUR KERJA (WORKFLOW)
+3. ALUR KERJA (WORKFLOW) TERBARU
+
 Langkah 1: Pengisian Data Identitas
-- Form menampilkan indikator langkah: "① Data ── ② Alamat ── ③ Lokasi".
-- Responden memasukkan Nama Lengkap dan Nomor HP (dengan validasi format 08x).
+- Form menggunakan prinsip *Progressive Disclosure*.
+- Responden memasukkan Nama Lengkap dan Nomor HP.
 
 Langkah 2: Pengisian Alamat Rumah
-- Responden memasukkan detail alamat lengkap menggunakan form yang terstruktur.
-- Setelah menekan "Lanjutkan", sistem menampilkan status "Mencari referensi lokasi alamat..." dan data dikirim ke Nominatim secara asinkron.
-- Nominatim mengembalikan Titik Referensi Alamat. (Catatan: Ini BUKAN koordinat persis rumah, melainkan sekadar referensi desa/wilayah).
+- Responden memasukkan detail alamat. Field yang rentan tidak diketahui (seperti Nama Jalan dan Nomor Rumah) bersifat OPSIONAL.
+- Saat dilanjutkan, sistem mengirim data ke Nominatim.
+- FITUR PENTING (Geocoding Fallback): Sistem melakukan hingga 7 variasi kueri bertahap. Jika alamat lengkap tidak ditemukan di database OpenStreetMap, sistem otomatis mencari cakupan yang lebih luas (menghilangkan jalan, lalu menghilangkan kecamatan) hingga titik referensi desa/kabupaten dipastikan berhasil ditemukan.
 
-Langkah 3: Verifikasi Lokasi
-- Tampilan UI berubah ke halaman dengan ikon lokasi dan pesan ramah.
-- Responden menekan "Izinkan Akses Lokasi".
-- UI memunculkan indikator status: "Menunggu izin lokasi..." lalu "Mendapatkan lokasi perangkat..."
-- Browser Geolocation API membaca koordinat aktual beserta tingkat akurasinya secara instan (sekali tembak, tanpa pelacakan berkelanjutan).
+Langkah 3: Pengambilan Lokasi Perangkat (Browser Geolocation)
+- Responden diminta mengizinkan akses lokasi.
+- FITUR PENTING (Geolocation Fallback): 
+  1. Sistem mencoba mencari sinyal satelit GPS tingkat tinggi (High Accuracy) selama 20 detik.
+  2. Jika gagal karena berada di dalam ruangan atau fitur fisik GPS mati (POSITION_UNAVAILABLE), sistem TIDAK akan melempar error.
+  3. Sistem otomatis beralih (fallback) menggunakan pencarian instan berbasis triangulasi Wi-Fi/Menara Seluler (Low Accuracy) selama 30 detik. Ini memastikan HP responden akan selalu berhasil mendapatkan lokasi seperti halnya membuka aplikasi Google Maps.
 
 Langkah 4: Proses Validasi (Di Server Backend)
-- UI menampilkan pesan "Memeriksa kesesuaian lokasi...".
-- Server mengecek Akurasi (MAX_ACCURACY = 100m). Jika > 100m, dinyatakan VALIDASI GAGAL ("Akurasi lokasi belum memadai").
 - Server menghitung jarak Lokasi Aktual vs Titik Referensi dengan Haversine Formula.
-- Server mengecek Jarak (MAX_DISTANCE = 500m). Jika > 500m, dinyatakan VALIDASI GAGAL ("Lokasi perangkat belum memenuhi kriteria validasi").
-- Jika jarak <= 500m dan akurasi <= 100m, dinyatakan VALIDASI BERHASIL.
+- FITUR PENTING (Soft Limits - Anti Blokir):
+  Untuk mencegah responden frustrasi akibat titik desa OSM yang berada jauh dari rumah mereka, sistem MENGHILANGKAN pemblokiran error (Rigid Blocking).
+  - Sistem memiliki batas toleransi: Akurasi < 2.000 meter dan Jarak < 5.000 meter.
+  - Server TIDAK AKAN PERNAH menolak pengiriman formulir. Formulir akan SELALU berhasil.
 
 Langkah 5: Penyimpanan (Database)
-- Jika VALIDASI BERHASIL: Sistem menyimpan record responden ke database. Koordinat yang disimpan sebagai `latitude_rumah` dan `longitude_rumah` MURNI diambil dari GPS perangkat (Lokasi Aktual), bukan Nominatim.
-- Jika VALIDASI GAGAL: Tidak ada record baru yang dibuat di database. Frontend mempertahankan seluruh isian Nama dan Alamat di memori halaman sehingga pengguna dapat langsung menekan tombol "[ Coba Lagi ]" untuk mengambil ulang lokasi tanpa mengetik ulang formulir.
+- Jika lokasi sangat akurat (Jarak < 5km), status disimpan sebagai: `VALIDASI_BERHASIL`.
+- Jika jarak atau akurasi melenceng jauh (misal > 5km), status disimpan sebagai: `PERLU_TINJAUAN_MANUAL`.
+- Responden selalu melihat layar sukses. Surveyor/Admin dapat menyaring data mana yang perlu ditinjau ulang tanpa mengorbankan kenyamanan responden.
 
-4. PRIVASI & KONSEP KRUSIAL
-- Transparansi: Latitude dan Longitude mentah tidak ditampilkan langsung di layar responden agar tidak timbul rasa diawasi secara berlebihan, dan pesan yang tampil selalu menggunakan bahasa netral.
-- Maksud Status 'VALIDASI_BERHASIL': Status ini sama sekali BUKAN klaim absolut bahwa sistem telah membuktikan 100% titik tersebut adalah rumah responden. Artinya hanyalah: "Koordinat perangkat saat ini telah memenuhi kriteria toleransi sistem (berjarak di bawah 500 meter dari referensi alamat)".
-- Nominatim Bukan Acuan Mutlak: Karena Nominatim sering kali hanya mengarah pada pusat desa/kecamatan, jarak (distance threshold) sebesar 500 meter sengaja digunakan sebagai parameter awal prototipe.
+4. PANDUAN TESTING / SIMULASI (KHUSUS PENGEMBANG)
+Karena sistem operasi Windows (PC/Laptop) sering memblokir akses lokasi tingkat perangkat keras keras kepada browser, simulasi fitur ini di PC harus menggunakan alat pengembang:
+1. Buka Chrome, tekan Inspect (F12).
+2. Tekan Ctrl+Shift+P, ketik "Sensors", pilih tab Sensors.
+3. Pada bagian Location, pilih "Other...".
+4. Masukkan Latitude dan Longitude desa tujuan (Contoh Gondangmanis: -6.7691, 110.8672).
+5. Refresh halaman web dan uji pengisian formulir. Sistem akan bereaksi persis seperti HP sungguhan yang sedang berada di lokasi tersebut.
