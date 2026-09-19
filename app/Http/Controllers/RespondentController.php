@@ -249,7 +249,7 @@ class RespondentController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $message,
+            'message' => 'Lokasi berhasil dicatat.',
             'data' => $respondent
         ]);
     }
