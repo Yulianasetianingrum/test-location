@@ -1,0 +1,42 @@
+PENJELASAN LENGKAP FITUR:
+VERIFIKASI TITIK LOKASI RUMAH RESPONDEN
+
+1. TUJUAN UTAMA
+Fitur ini dibangun untuk mendapatkan koordinat rumah responden (Latitude & Longitude) yang akurat dari GPS perangkat pengguna tanpa mengharuskan surveyor datang ke lokasi, tanpa memaksa pengguna menandai peta secara manual, dan tanpa melakukan pelacakan (tracking) secara terus-menerus. Sistem hanya akan memverifikasi dan menyimpan lokasi jika perangkat sedang berada dekat dengan alamat rumah yang diketikkan.
+
+2. TEKNOLOGI & KOMPONEN
+- Laravel (PHP): Mengelola logika backend, database, dan perhitungan jarak matematis.
+- Nominatim (OpenStreetMap): Layanan "Geocoding", mengubah teks alamat yang diinput menjadi Titik Referensi koordinat.
+- Browser Geolocation API: Membaca koordinat aktual GPS perangkat pengguna dan tingkat akurasinya (memerlukan izin eksplisit pengguna).
+
+3. ALUR KERJA (WORKFLOW)
+Langkah 1: Pengisian Data Identitas
+- Form menampilkan indikator langkah: "① Data ── ② Alamat ── ③ Lokasi".
+- Responden memasukkan Nama Lengkap dan Nomor HP (dengan validasi format 08x).
+
+Langkah 2: Pengisian Alamat Rumah
+- Responden memasukkan detail alamat lengkap menggunakan form yang terstruktur.
+- Setelah menekan "Lanjutkan", sistem menampilkan status "Mencari referensi lokasi alamat..." dan data dikirim ke Nominatim secara asinkron.
+- Nominatim mengembalikan Titik Referensi Alamat. (Catatan: Ini BUKAN koordinat persis rumah, melainkan sekadar referensi desa/wilayah).
+
+Langkah 3: Verifikasi Lokasi
+- Tampilan UI berubah ke halaman dengan ikon lokasi dan pesan ramah.
+- Responden menekan "Izinkan Akses Lokasi".
+- UI memunculkan indikator status: "Menunggu izin lokasi..." lalu "Mendapatkan lokasi perangkat..."
+- Browser Geolocation API membaca koordinat aktual beserta tingkat akurasinya secara instan (sekali tembak, tanpa pelacakan berkelanjutan).
+
+Langkah 4: Proses Validasi (Di Server Backend)
+- UI menampilkan pesan "Memeriksa kesesuaian lokasi...".
+- Server mengecek Akurasi (MAX_ACCURACY = 100m). Jika > 100m, dinyatakan VALIDASI GAGAL ("Akurasi lokasi belum memadai").
+- Server menghitung jarak Lokasi Aktual vs Titik Referensi dengan Haversine Formula.
+- Server mengecek Jarak (MAX_DISTANCE = 500m). Jika > 500m, dinyatakan VALIDASI GAGAL ("Lokasi perangkat belum memenuhi kriteria validasi").
+- Jika jarak <= 500m dan akurasi <= 100m, dinyatakan VALIDASI BERHASIL.
+
+Langkah 5: Penyimpanan (Database)
+- Jika VALIDASI BERHASIL: Sistem menyimpan record responden ke database. Koordinat yang disimpan sebagai `latitude_rumah` dan `longitude_rumah` MURNI diambil dari GPS perangkat (Lokasi Aktual), bukan Nominatim.
+- Jika VALIDASI GAGAL: Tidak ada record baru yang dibuat di database. Frontend mempertahankan seluruh isian Nama dan Alamat di memori halaman sehingga pengguna dapat langsung menekan tombol "[ Coba Lagi ]" untuk mengambil ulang lokasi tanpa mengetik ulang formulir.
+
+4. PRIVASI & KONSEP KRUSIAL
+- Transparansi: Latitude dan Longitude mentah tidak ditampilkan langsung di layar responden agar tidak timbul rasa diawasi secara berlebihan, dan pesan yang tampil selalu menggunakan bahasa netral.
+- Maksud Status 'VALIDASI_BERHASIL': Status ini sama sekali BUKAN klaim absolut bahwa sistem telah membuktikan 100% titik tersebut adalah rumah responden. Artinya hanyalah: "Koordinat perangkat saat ini telah memenuhi kriteria toleransi sistem (berjarak di bawah 500 meter dari referensi alamat)".
+- Nominatim Bukan Acuan Mutlak: Karena Nominatim sering kali hanya mengarah pada pusat desa/kecamatan, jarak (distance threshold) sebesar 500 meter sengaja digunakan sebagai parameter awal prototipe.
