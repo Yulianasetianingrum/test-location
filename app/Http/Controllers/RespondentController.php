@@ -204,16 +204,9 @@ class RespondentController extends Controller
             'accuracy' => 'required|numeric',
         ]);
 
-        // Tolerance thresholds
-        $MAX_ACCURACY = 100; // max 100 meters
-        $MAX_DISTANCE = 500; // max 500 meters from Nominatim reference point
-
-        if ($validated['accuracy'] > $MAX_ACCURACY) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Akurasi sinyal GPS tidak mencukupi (saat ini ' . round($validated['accuracy']) . ' meter, butuh di bawah ' . $MAX_ACCURACY . ' meter). Silakan coba berpindah ke luar ruangan atau aktifkan High Accuracy pada perangkat Anda.'
-            ]);
-        }
+        // Tolerance thresholds (Soft limits, tidak lagi memblokir user)
+        $SOFT_MAX_ACCURACY = 2000; // 2km
+        $SOFT_MAX_DISTANCE = 5000; // 5km dari titik tengah desa (OSM)
 
         $distance = $this->haversineGreatCircleDistance(
             $validated['latitude_referensi'], 
@@ -223,14 +216,13 @@ class RespondentController extends Controller
         );
 
         $status = 'VALIDASI_BERHASIL';
-        $message = 'Lokasi berhasil dicatat.';
-
-        if ($distance > $MAX_DISTANCE) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lokasi perangkat belum memenuhi kriteria validasi untuk pencatatan titik tempat tinggal.'
-            ]);
+        
+        // Alih-alih menolak (block), kita hanya menandai statusnya untuk petugas
+        if ($validated['accuracy'] > $SOFT_MAX_ACCURACY || $distance > $SOFT_MAX_DISTANCE) {
+            $status = 'PERLU_TINJAUAN_MANUAL';
         }
+
+        // Tidak ada lagi error return response()->json success false! User selalu tembus!
 
         // Save data
         $respondent = Respondent::create([
