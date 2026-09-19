@@ -166,19 +166,19 @@ function verifyLocation() {
     const errorCallback = (error) => {
         let msg = "Lokasi perangkat belum memenuhi kondisi yang diperlukan untuk melengkapi data tempat tinggal. Silakan pastikan layanan lokasi perangkat aktif dan coba kembali.";
         if (error.code === error.PERMISSION_DENIED) {
-            msg = "Silakan izinkan akses lokasi pada browser untuk melanjutkan proses verifikasi.";
+            msg = "Akses lokasi ditolak. Silakan izinkan akses lokasi (Location) pada pengaturan browser Anda untuk melanjutkan.";
             showResult(false, msg, "Lokasi belum dapat dicatat");
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-            msg = "Tidak dapat melacak posisi. Jika Anda menggunakan PC/Laptop Windows, pastikan 'Location' aktif pada pengaturan privasi OS (Privacy & Security).";
+            msg = "Sinyal lokasi tidak ditemukan. Pastikan fitur Lokasi/GPS pada HP atau PC Anda sudah DIAKTIFKAN, dan Anda memiliki koneksi internet.";
             showResult(false, msg, "Lokasi belum dapat dicatat");
         } else {
             // Fallback: Timeout
             navigator.geolocation.getCurrentPosition(
                 successCallback,
                 (fallbackError) => {
-                    showResult(false, msg, "Lokasi belum dapat dicatat");
+                    showResult(false, "Pencarian lokasi terlalu lama (Timeout). Coba lakukan penyegaran (refresh) halaman atau berpindah ke luar ruangan agar sinyal GPS lebih kuat.", "Lokasi belum dapat dicatat");
                 },
-                { enableHighAccuracy: false, timeout: 20000, maximumAge: 0 }
+                { enableHighAccuracy: false, timeout: 30000, maximumAge: 0 }
             );
         }
     };
@@ -186,7 +186,7 @@ function verifyLocation() {
     navigator.geolocation.getCurrentPosition(
         successCallback,
         errorCallback,
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
 }
 
