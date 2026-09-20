@@ -262,14 +262,16 @@ function retryVerification() {
     document.getElementById('verifyIntro').classList.remove('hidden-element');
 }
 
-function lanjutkanTanpaLokasi() {
+function lanjutkanTanpaLokasi(status = null) {
     // Kosongkan koordinat dan kirim ulang dengan tanda skip_location
     formData.latitude_rumah = null;
     formData.longitude_rumah = null;
     formData.accuracy = null;
     formData.skip_location = true;
+    formData.skip_status = status;
     
     document.getElementById('resultOutside').classList.add('hidden-element');
+    document.getElementById('resultError').classList.add('hidden-element');
     document.getElementById('loadingLokasi').classList.remove('hidden-element');
     document.getElementById('loadingLokasiText').innerText = "Menyimpan data...";
     document.getElementById('loadingLokasiSub').innerText = "Melanjutkan tanpa verifikasi lokasi.";

@@ -203,16 +203,22 @@ class RespondentController extends Controller
             'longitude_rumah' => 'nullable|numeric',
             'accuracy' => 'nullable|numeric',
             'skip_location' => 'nullable|boolean',
+            'skip_status' => 'nullable|string',
         ]);
 
         // Jika user memilih untuk melanjutkan survei tanpa mencatat lokasi
         if ($request->boolean('skip_location') || empty($validated['latitude_rumah'])) {
+            $status = null;
+            if (isset($validated['skip_status']) && $validated['skip_status'] === 'DI_LUAR_WILAYAH') {
+                $status = 'DI_LUAR_WILAYAH';
+            }
+
             $respondent = Respondent::create(array_merge($validated, [
                 'latitude_rumah' => null,
                 'longitude_rumah' => null,
                 'accuracy' => null,
                 'jarak_dari_referensi' => null,
-                'location_status' => 'BELUM_DICATAT',
+                'location_status' => $status,
                 'location_captured_at' => null,
             ]));
             

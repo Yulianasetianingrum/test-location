@@ -183,7 +183,11 @@
                 <div class="icon-large" style="color: var(--error);">✕</div>
                 <h2 style="color: var(--text-main); font-size: 1.25rem;">Lokasi belum dapat dicatat</h2>
                 <p class="dynamic-message" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 16px;">Lokasi perangkat belum memenuhi kondisi yang diperlukan untuk melengkapi data tempat tinggal. Silakan pastikan layanan lokasi perangkat aktif dan coba kembali saat berada di lokasi tempat tinggal.</p>
-                <button class="btn btn-primary" onclick="retryVerification()">Coba Lagi</button>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+                    <button class="btn btn-primary" onclick="retryVerification()">Coba Lagi</button>
+                    <button class="btn" style="background-color: var(--surface-hover); color: var(--text-main);" onclick="lanjutkanTanpaLokasi(null)">Lanjutkan Survei</button>
+                </div>
             </div>
 
             <div class="result-box hidden-element" id="resultOutside">
@@ -193,7 +197,7 @@
                 
                 <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
                     <button class="btn btn-primary" onclick="retryVerification()">Coba Lagi</button>
-                    <button class="btn" style="background-color: var(--surface-hover); color: var(--text-main);" onclick="lanjutkanTanpaLokasi()">Lanjutkan Survei</button>
+                    <button class="btn" style="background-color: var(--surface-hover); color: var(--text-main);" onclick="lanjutkanTanpaLokasi('DI_LUAR_WILAYAH')">Lanjutkan Survei</button>
                 </div>
             </div>
         </div>
