@@ -182,8 +182,19 @@
             <div class="result-box hidden-element" id="resultError">
                 <div class="icon-large" style="color: var(--error);">✕</div>
                 <h2 style="color: var(--text-main); font-size: 1.25rem;">Lokasi belum dapat dicatat</h2>
-                <p id="errorMessage" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 16px;">Lokasi perangkat belum memenuhi kondisi yang diperlukan untuk melengkapi data tempat tinggal. Silakan pastikan layanan lokasi perangkat aktif dan coba kembali saat berada di lokasi tempat tinggal.</p>
+                <p class="dynamic-message" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 16px;">Lokasi perangkat belum memenuhi kondisi yang diperlukan untuk melengkapi data tempat tinggal. Silakan pastikan layanan lokasi perangkat aktif dan coba kembali saat berada di lokasi tempat tinggal.</p>
                 <button class="btn btn-primary" onclick="retryVerification()">Coba Lagi</button>
+            </div>
+
+            <div class="result-box hidden-element" id="resultOutside">
+                <div class="icon-large" style="color: #F59E0B;">ℹ️</div>
+                <h2 style="color: var(--text-main); font-size: 1.25rem;">Pemberitahuan Lokasi</h2>
+                <p class="dynamic-message" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 16px;">Lokasi perangkat berada di luar wilayah tempat tinggal yang dipilih. Anda tetap dapat melanjutkan pengisian survei. Jika ingin mencatat lokasi tempat tinggal, Anda dapat mencoba kembali saat berada di wilayah tersebut.</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+                    <button class="btn btn-primary" onclick="retryVerification()">Coba Lagi</button>
+                    <button class="btn" style="background-color: var(--surface-hover); color: var(--text-main);" onclick="lanjutkanTanpaLokasi()">Lanjutkan Survei</button>
+                </div>
             </div>
         </div>
     </div>

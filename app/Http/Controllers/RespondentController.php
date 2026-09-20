@@ -199,14 +199,33 @@ class RespondentController extends Controller
             'latitude_referensi' => 'required|numeric',
             'longitude_referensi' => 'required|numeric',
             'display_name_referensi' => 'nullable|string',
-            'latitude_rumah' => 'required|numeric',
-            'longitude_rumah' => 'required|numeric',
-            'accuracy' => 'required|numeric',
+            'latitude_rumah' => 'nullable|numeric',
+            'longitude_rumah' => 'nullable|numeric',
+            'accuracy' => 'nullable|numeric',
+            'skip_location' => 'nullable|boolean',
         ]);
 
-        // Tolerance thresholds (Soft limits, tidak lagi memblokir user)
-        $SOFT_MAX_ACCURACY = 2000; // 2km
-        $SOFT_MAX_DISTANCE = 5000; // 5km dari titik tengah desa (OSM)
+        // Jika user memilih untuk melanjutkan survei tanpa mencatat lokasi
+        if ($request->boolean('skip_location') || empty($validated['latitude_rumah'])) {
+            $respondent = Respondent::create(array_merge($validated, [
+                'latitude_rumah' => null,
+                'longitude_rumah' => null,
+                'accuracy' => null,
+                'jarak_dari_referensi' => null,
+                'location_status' => 'BELUM_DICATAT',
+                'location_captured_at' => null,
+            ]));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil dicatat.',
+                'data' => $respondent
+            ]);
+        }
+
+        // Logic jika user mengirimkan koordinat (GPS)
+        $MAX_ACCURACY = 150; // max 150 meters
+        $MAX_DISTANCE = 500; // max 500 meters from Nominatim reference point (wilayah desa)
 
         $distance = $this->haversineGreatCircleDistance(
             $validated['latitude_referensi'], 
@@ -215,14 +234,19 @@ class RespondentController extends Controller
             $validated['longitude_rumah']
         );
 
-        $status = 'VALIDASI_BERHASIL';
-        
-        // Alih-alih menolak (block), kita hanya menandai statusnya untuk petugas
-        if ($validated['accuracy'] > $SOFT_MAX_ACCURACY || $distance > $SOFT_MAX_DISTANCE) {
-            $status = 'PERLU_TINJAUAN_MANUAL';
+        // Jika GPS tidak sesuai (akurasinya buruk atau berada di luar desa)
+        if ($validated['accuracy'] > $MAX_ACCURACY || $distance > $MAX_DISTANCE) {
+            // Jangan menyimpan koordinat ke DB, dan jangan memblokir secara kaku.
+            // Kembalikan flag 'is_outside' agar frontend dapat memberikan opsi netral kepada user.
+            return response()->json([
+                'success' => false,
+                'is_outside' => true,
+                'message' => 'Lokasi perangkat belum sesuai dengan wilayah tempat tinggal yang dipilih.'
+            ]);
         }
 
-        // Tidak ada lagi error return response()->json success false! User selalu tembus!
+        // Jika GPS sesuai wilayah desa
+        $status = 'DALAM_WILAYAH';
 
         // Save data
         $respondent = Respondent::create([
@@ -249,7 +273,7 @@ class RespondentController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Lokasi berhasil dicatat.',
+            'message' => 'Lokasi sesuai wilayah tempat tinggal.',
             'data' => $respondent
         ]);
     }

@@ -166,14 +166,14 @@ function verifyLocation() {
     const errorCallback = (error) => {
         if (error.code === error.PERMISSION_DENIED) {
             let msg = "Akses lokasi ditolak. Silakan izinkan akses lokasi (Location) pada pengaturan browser Anda untuk melanjutkan.";
-            showResult(false, msg, "Lokasi belum dapat dicatat");
+            showResult('error', msg, "Lokasi belum dapat dicatat");
         } else {
-            // Fallback: Timeout ATAU Position Unavailable (karena device tidak mendukung High Accuracy)
+            // Fallback: Timeout ATAU Position Unavailable
             navigator.geolocation.getCurrentPosition(
                 successCallback,
                 (fallbackError) => {
                     let finalMsg = "Pencarian lokasi gagal. Pastikan fitur Lokasi/GPS di HP Anda MENYALA (Aktif) dan coba muat ulang (refresh) halaman ini.";
-                    showResult(false, finalMsg, "Lokasi belum dapat dicatat");
+                    showResult('error', finalMsg, "Lokasi belum dapat dicatat");
                 },
                 { enableHighAccuracy: false, timeout: 30000, maximumAge: 0 }
             );
@@ -216,31 +216,63 @@ async function submitData() {
         const result = await response.json();
         
         if (result.success) {
-            showResult(true, "Data tempat tinggal Anda sudah lengkap.", "Data lokasi berhasil dicatat");
+            showResult('success', "Data tempat tinggal Anda sudah lengkap.", "Lokasi sesuai wilayah tempat tinggal");
+        } else if (result.is_outside) {
+            showResult('outside', result.message, "Pemberitahuan Lokasi");
         } else {
-            showResult(false, result.message, "Lokasi belum dapat dicatat");
+            // General error
+            showResult('error', result.message, "Lokasi belum dapat dicatat");
         }
 
     } catch (error) {
-        showResult(false, "Terjadi kesalahan sistem saat menyimpan data. Silakan coba lagi.", "Lokasi belum dapat dicatat");
+        showResult('error', "Terjadi kesalahan sistem saat menyimpan data. Silakan coba lagi.", "Lokasi belum dapat dicatat");
     }
 }
 
-function showResult(isSuccess, message, titleText) {
+function showResult(type, message, titleText) {
     document.getElementById('loadingLokasi').classList.add('hidden-element');
     
-    if (isSuccess) {
-        document.getElementById('resultSuccess').classList.remove('hidden-element');
+    // Hide all result boxes first
+    document.getElementById('resultSuccess').classList.add('hidden-element');
+    document.getElementById('resultError').classList.add('hidden-element');
+    document.getElementById('resultOutside').classList.add('hidden-element');
+
+    let targetBox;
+    if (type === 'success') {
+        targetBox = document.getElementById('resultSuccess');
+    } else if (type === 'outside') {
+        targetBox = document.getElementById('resultOutside');
     } else {
-        const errorBox = document.getElementById('resultError');
-        errorBox.classList.remove('hidden-element');
-        errorBox.querySelector('h2').innerText = titleText;
-        document.getElementById('errorMessage').innerText = message;
+        targetBox = document.getElementById('resultError');
+    }
+
+    targetBox.classList.remove('hidden-element');
+    
+    // Only outside and error have dynamic text
+    if (type !== 'success') {
+        targetBox.querySelector('h2').innerText = titleText;
+        targetBox.querySelector('.dynamic-message').innerText = message;
     }
 }
 
 function retryVerification() {
     // Reset to location verify intro
     document.getElementById('resultError').classList.add('hidden-element');
+    document.getElementById('resultOutside').classList.add('hidden-element');
     document.getElementById('verifyIntro').classList.remove('hidden-element');
+}
+
+function lanjutkanTanpaLokasi() {
+    // Kosongkan koordinat dan kirim ulang dengan tanda skip_location
+    formData.latitude_rumah = null;
+    formData.longitude_rumah = null;
+    formData.accuracy = null;
+    formData.skip_location = true;
+    
+    document.getElementById('resultOutside').classList.add('hidden-element');
+    document.getElementById('loadingLokasi').classList.remove('hidden-element');
+    document.getElementById('loadingLokasiText').innerText = "Menyimpan data...";
+    document.getElementById('loadingLokasiSub').innerText = "Melanjutkan tanpa verifikasi lokasi.";
+    
+    submitData();
 }
